@@ -1,7 +1,7 @@
 use Test::More tests => 1;
 
 BEGIN {
-   use_ok('IO::Range');
+   use_ok('IO::Slice');
 }
 
-diag("Testing IO::Range $IO::Range::VERSION");
+diag("Testing IO::Slice $IO::Slice::VERSION");
