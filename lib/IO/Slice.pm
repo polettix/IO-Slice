@@ -10,11 +10,41 @@ use Symbol ();
 use Fcntl qw< :seek >;
 use Log::Log4perl::Tiny qw< :easy :dead_if_first >;
 
+=head2 B<< new >>
+
+create a new IO::Slice object.
+
+Parameters can be passed either as an hash reference or
+key-value pairs. Useful parameters are:
+
+=over
+
+=item C<offset>
+
+set the offset of the slice from the start of file. This is mandatory
+
+=item C<length>
+
+set the length of the slice. This is mandatory.
+
+=back
+
+Neither C<offset> nor C<length> are tested for correctness against the
+file.
+
+You have to provide at least one of C<fh> and C<filename> so that the
+data source can be reached. If you provide both, C<fh> will used for
+taking the data.
+
+Returns the object. Throws an exception in case of errors.
+
+=cut
+
 sub new {
    my $package = shift;
    my $efh = Symbol::gensym();
    my $self = tie *$efh, $package;
-   $self->open(@_);
+   $self->open(@_) if @_;
    return $efh;
 }
 
@@ -28,6 +58,12 @@ sub TIEHANDLE {
 sub DESTROY {
    DEBUG "DESTROY(@_)";
 }
+
+=head2 B<< open >>
+
+open a slice. Parameters are the same as the L</new> method.
+
+=cut
 
 sub open {
    my $self = shift;
@@ -62,21 +98,46 @@ sub open {
    return $self; # been there, done that
 }
 
+=head2 B<< close >>
+
+close the tied handle and the associated object.
+
+=cut
+
 sub close {
    my $self = shift;
    %$self = ();
    return 1;
 }
 
-sub openend {
+=head2 B<< opened >>
+
+assess whether the object is associated to an opened file
+
+=cut
+
+sub opened {
    my $self = shift;
    return exists $self->{fh};
 }
+
+=head2 B<< binmode >>
+
+support the binmode method... but in a fake way, does not
+accept anything actually.
+
+=cut
 
 sub binmode {
    my $self = shift;
    return ! scalar @_;
 }
+
+=head2 B<< getc >>
+
+get one byte from the input stream.
+
+=cut
 
 sub getc {
    my $self = shift;
@@ -85,16 +146,36 @@ sub getc {
    return undef;
 }
 
+=head2 B<< ungetc >>
+
+release one byte back into the input stream
+
+=cut
+
 sub ungetc {
    my $self = shift;
    $self->pos($self->{position} - 1);
    return 1;
 }
 
+=head2 B<< eof >>
+
+test whether there are still bytes to read or we are at the
+end of the file
+
+=cut
+
 sub eof {
    my $self = shift;
    return $self->{position} >= $self->{length};
 }
+
+=head2 B<< pos >>
+
+accessor for the position. It allows you to set the position by
+passing an input parameter, and to retrieve the current position.
+
+=cut
 
 sub pos {
    my $self = shift;
@@ -110,6 +191,26 @@ sub pos {
    return $retval;
 }
 
+=head2 B<< seek >>
+
+set current position in the stream. Two positional parameters are
+accepted:
+
+=over
+
+=item * offset
+
+specifies the offset to use
+
+=item * whence
+
+specifies the reference point for applying the offset
+
+=back
+
+Both are consistent with what you find in CORE::seek documentation.
+
+=cut
 
 sub seek {
    my ($self, $offset, $whence) = @_;
@@ -131,7 +232,21 @@ sub seek {
    return 1;
 }
 
+=head2 B<< tell >>
+
+get current position in the stream.
+
+=cut
+
 sub tell { return shift->{position} }
+
+=head2 B<< do_read >>
+
+convenience function around C<read>. Takes as input the count of
+needed bytes and outputs a string that is the result of the
+underlying C<read>, without requiring you to provide a buffer.
+
+=cut
 
 sub do_read {
    my ($self, $count) = @_;
@@ -139,6 +254,15 @@ sub do_read {
    defined (my $nread = $self->read($buf, $count)) or return;
    return $buf;
 }
+
+=head2 B<< getline >>
+
+get a line from the input. Returns a single scalar with one line.
+
+This honors C<$/> (aka C<$INPUT_RECORD_SEPARATOR>), so I<line> might
+not be what you generally consider a line.
+
+=cut
 
 sub getline {
    my $self = shift;
@@ -190,6 +314,12 @@ sub _conditioned_getstuff {
    return $buffer;
 }
 
+=head2 B<< getlines >>
+
+list-version for getting lines, propedeutic to READLINE
+
+=cut
+
 sub getlines {
    LOGCROAK "getlines is only valid in list context"
       unless wantarray();
@@ -204,7 +334,32 @@ sub READLINE {
    goto &getline;
 }
 
-# read: set $buffer to undef is errors
+=head2 B<< read >>
+
+read bytes from the stream. The interface is the same as the
+CORE::read function, with the following positional parameters:
+
+=over
+
+=item * filehandle
+
+mandatory parameter
+
+=item * buffer
+
+mandatory parameter
+
+=item * offset
+
+optional parameter, used for putting data into the buffer
+
+=back
+
+Returns undef if errors arise or end of file. Returns number of 
+read characters otherwise (0 if end of file).
+
+=cut
+
 sub read {
    my $self = shift;
    my $bufref = \shift;
@@ -212,7 +367,7 @@ sub read {
 
    my $position = $self->{position};
    my $data_length = $self->{length};
-   return if $position >= $data_length;
+   return 0 if $position >= $data_length;
 
    my $fh = $self->{fh};
    CORE::seek $fh, ($self->{offset} + $position), SEEK_SET
@@ -227,35 +382,64 @@ sub read {
    return $nread;
 }
 
-
-sub stat {
-   my $self = shift;
-   return unless $self->opened();
-   return 1 unless wantarray();
-   my $length = $self->{length};
-   return (
-      undef, undef,  # dev, ino
-      0666,          # filemode
-      1,             # links
-      $>,            # user id
-      $),            # group id
-      undef,         # device id
-      $length,       # size
-      undef,         # atime
-      undef,         # mtime
-      undef,         # ctime
-      512,           # blksize
-      int(($length + 511) / 512)  # blocks
-   ); 
-}
-
 {
    no strict 'refs';
    no warnings 'once';
-   my $nothing = sub { return };
+
+=head2 B<< sysseek >>
+
+alias of L</seek>
+
+=head2 B<< sysread >>
+
+alias for L</read>
+
+=cut
+
    *sysseek = \&seek;
-   *print = $nothing;
    *sysread = \&read;
+
+=head2 Nullified Functions
+
+=over
+
+=item print
+
+=item printflush
+
+=item printf
+
+=item fileno
+
+=item error
+
+=item clearerr
+
+=item sync
+
+=item write
+
+=item setbuf
+
+=item setvbuf
+
+=item untaint
+
+=item autoflush
+
+=item fcntl
+
+=item ioctl
+
+=item input_line_number
+
+=back
+
+
+=cut
+
+   my $nothing = sub { return };
+   *print = $nothing;
    *printflush = $nothing;
    *printf = $nothing;
    *fileno = $nothing;
@@ -270,7 +454,6 @@ sub stat {
    *fcntl = $nothing;
    *ioctl = $nothing;
    *input_line_number = $nothing;
-   *write = $nothing;
 
    *GETC = \&getc;
    *PRINT = $nothing;
