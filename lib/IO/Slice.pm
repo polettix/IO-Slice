@@ -80,7 +80,7 @@ sub open {
 
    # optional/conditional features
    $self->{filename} = defined($args{filename})
-      ? $ags{filename} : '*undefined*';
+      ? $args{filename} : '*undefined*';
 
    # underlying filehandle
    if ($args{fh}) {
