@@ -1,4 +1,6 @@
 {{$NEXT}}
+   - defined-or is not available on Perl 5.8, reverting to
+     backwards-compatible syntax
 
 0.1       2014-12-29 03:59:54 Europe/Rome
-   -initial release
+   - initial release
