@@ -1,14 +1,14 @@
 package IO::Slice;
 
 # ABSTRACT: restrict reads to a range in a file
-# Strongly inspired to IO::String 1.08 by Gisle Aas
 
 use strict;
-use warnings;
 use English qw< -no_match_vars >;
 use Symbol ();
 use Fcntl qw< :seek >;
 use Log::Log4perl::Tiny qw< :easy :dead_if_first >;
+
+=head1 METHODS
 
 =head2 B<< new >>
 
@@ -401,6 +401,8 @@ alias for L</read>
 
 =head2 Nullified Functions
 
+The following functions are defined but don't actually do anything.
+
 =over
 
 =item print
@@ -470,3 +472,75 @@ alias for L</read>
 
 1;
 __END__
+
+=head1 SYNOPSIS
+
+   use IO::Slice;
+
+   # Define a slice based on a file
+   my $sfh = IO::Slice->new(
+      filename => '/path/to/file',
+      offset   => 13,
+      length   => 16,
+   );
+
+   # Ditto, based on a previously available filehandle $fh. The
+   # filehandle MUST be seekable.
+   my $sfh = IO::Slice->new(
+      fh     => $fh,
+      offset => 13,
+      length => 16,
+   );
+
+   # Both the filehandle and the filename can be provided. The
+   # filehandle will win.
+   my $sfh = IO::Slice->new(
+      fh       => $fh,
+      filename => '/path/to/file',
+      offset   => 13,
+      length   => 16,
+   );
+
+   # Whatever, you can use $sfh as any other filehandle, mostly.
+
+=head1 DESCRIPTION
+
+This module allows the definition of a filehandle that only works on
+a slice of an input file. The C<new> method provides back a GLOB that
+can be used as any other filehandle, mostly, with the notable
+exception of some methods like C<stat>, C<fileno> and the tracking
+of the input lines.
+
+   my $sfh = IO::Slice->new(
+      filename => '/path/to/file',
+      offset   => 13,
+      length   => 16,
+   );
+
+The provided handle works only for reading, not for writing.
+
+The parameters that you can pass to the constructor are:
+
+=over
+
+=item *
+
+the source of data. This can be provided by either a filename (through
+the C<filename> key) or a filehandle (through the C<fh> key). If both
+are provided, the filehandle will take precedence for getting the data.
+
+=item *
+
+the C<offset>, specifying an offset where the slice starts. C<0> means
+the start of the file
+
+=item *
+
+the C<length>, specifying the number of bytes in the slice
+
+=back
+
+=head1 SEE ALSO
+
+This module is heavily inspired (and in some places based) on code from
+L</IO::String> 1.08 by Gisle Aas.
