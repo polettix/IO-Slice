@@ -1,3 +1,4 @@
 *.swp
 IO-Slice-*.tar.gz
+IO-Slice-*/
 .build/
