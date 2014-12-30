@@ -474,7 +474,7 @@ The following functions are defined but don't actually do anything.
 1;
 __END__
 
-=head1 SYNOPSYS
+=head1 SYNOPSIS
 
    use IO::Slice;
 
