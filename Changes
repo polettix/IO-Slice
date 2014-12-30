@@ -1,4 +1,5 @@
 {{$NEXT}}
+   - fixed typos in documentation
 
 0.2       2014-12-30 16:23:19 Europe/Rome
    - release after 82 passes in CPAN Testers
