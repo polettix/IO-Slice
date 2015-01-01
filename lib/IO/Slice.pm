@@ -3,6 +3,7 @@ package IO::Slice;
 # ABSTRACT: restrict reads to a range in a file
 
 use strict;
+use warnings;
 use English qw< -no_match_vars >;
 use Symbol ();
 use Fcntl qw< :seek >;
