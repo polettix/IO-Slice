@@ -4,6 +4,7 @@ use Test::Exception;
 use IO::Slice;
 use Fcntl qw< :seek >;
 use File::Basename qw< dirname >;
+use lib qw< . >;
 my $dirname = dirname(__FILE__);
 my $spec    = {
    filename => "$dirname/testfile.multiline",

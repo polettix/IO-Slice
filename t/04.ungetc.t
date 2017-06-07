@@ -3,6 +3,7 @@ use Test::More;
 use Test::Exception;
 use IO::Slice;
 use File::Basename qw< dirname >;
+use lib qw< . >;
 my $dirname = dirname(__FILE__);
 my @specs = map { $_->{filename} = "$dirname/$_->{filename}"; $_ }
    @{ do "$dirname/testfile.specs" };
